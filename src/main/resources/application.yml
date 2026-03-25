@@ -1,30 +1,27 @@
 spring:
   datasource:
-    # 直接读取 Railway 里的环境变量（你已经配置好了！）
-    url: ${SPRING_DATASOURCE_URL}
-    username: ${SPRING_DATASOURCE_USERNAME}
-    password: ${SPRING_DATASOURCE_PASSWORD}
+    # 替换为你图片中的 Railway 公共网络 Host、端口和数据库名 (railway)
+    url: jdbc:mysql://caboose.proxy.rlwy.net:11100/railway?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
+    # 替换为 Railway 提供的用户名
+    username: root
+    # 替换为你命令里的真实密码
+    password: NAgBuOGRzIuDXKSyjIjmRPDQujwIfHaZ
     driver-class-name: com.mysql.cj.jdbc.Driver
-
-  # Railway 必须允许所有来源访问，否则前端/设备连不上
-  web:
-    cors:
-      allowed-origins: "*"
-      allowed-methods: "*"
-      allowed-headers: "*"
 
 app:
   cors:
     allowed-origins:
       - http://localhost:3000
       - http://localhost:5173
-      - https://your-project.vercel.app
+      - https://junyuc.me
+      - https://www.junyuc.me  # 建议把 www 也加上，防止跨域拦截
 
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
 
-# Railway 会自动分配端口，不能写死 8080
 server:
+  # 关键修改：云平台通常通过环境变量 PORT 来动态分配端口。
+  # 这里的语法是：优先使用系统的 PORT 变量，如果没有（比如你在本地运行），就默认用 8080。
   port: ${PORT:8080}

@@ -14,7 +14,8 @@ app:
       - http://localhost:3000
       - http://localhost:5173
       - https://junyuc.me
-      - https://www.junyuc.me  # 建议把 www 也加上，防止跨域拦截
+      - https://www.junyuc.me
+      - https://esp32-final-2zz8qglef-qregrets-projects.vercel.app # 把现在的预览地址加上
 
 mybatis-plus:
   configuration:

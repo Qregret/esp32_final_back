@@ -11,6 +11,7 @@ import com.example.smartlab.service.IotSeatSessionService;
 import com.example.smartlab.service.IotSystemLogService;
 import com.example.smartlab.service.IotUserService;
 import com.example.smartlab.service.SeatSessionOperationService;
+import com.example.smartlab.support.AppTime;
 import com.example.smartlab.service.StreamService;
 import com.example.smartlab.vo.StreamEventVO;
 import java.math.BigDecimal;
@@ -53,7 +54,7 @@ public class SeatSessionOperationServiceImpl implements SeatSessionOperationServ
             throw new IllegalStateException("Seat already has an active session.");
         }
 
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = AppTime.now();
         IotSeatSession session = new IotSeatSession();
         session.setSeatId(seat.getId());
         session.setUserId(request.getUserId());
@@ -98,7 +99,7 @@ public class SeatSessionOperationServiceImpl implements SeatSessionOperationServ
             return session;
         }
 
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = AppTime.now();
         int durationSeconds = Math.max((int) Duration.between(session.getStartedAt(), now).getSeconds(), 0);
         int billingHours = Math.max(1, (int) Math.ceil(durationSeconds / 3600.0));
         BigDecimal hourlyRate = defaultRate(session.getHourlyRate());

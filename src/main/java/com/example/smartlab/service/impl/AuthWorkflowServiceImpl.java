@@ -14,10 +14,10 @@ import com.example.smartlab.service.IotSystemLogService;
 import com.example.smartlab.service.IotUserService;
 import com.example.smartlab.service.SeatOperationService;
 import com.example.smartlab.service.SeatSessionOperationService;
+import com.example.smartlab.support.AppTime;
 import com.example.smartlab.service.StreamService;
 import com.example.smartlab.vo.StreamEventVO;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -59,7 +59,7 @@ public class AuthWorkflowServiceImpl implements AuthWorkflowService {
         }
 
         if (event.getCreatedAt() == null) {
-            event.setCreatedAt(LocalDateTime.now());
+            event.setCreatedAt(AppTime.now());
         }
         mergeRequest(event, request);
         applyPolicy(event);
@@ -91,7 +91,7 @@ public class AuthWorkflowServiceImpl implements AuthWorkflowService {
             }
         }
 
-        streamService.publish(new StreamEventVO("auth-event-updated", event, LocalDateTime.now()));
+        streamService.publish(new StreamEventVO("auth-event-updated", event, AppTime.now()));
         return event;
     }
 

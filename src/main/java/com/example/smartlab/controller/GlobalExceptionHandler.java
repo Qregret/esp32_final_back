@@ -1,6 +1,6 @@
 package com.example.smartlab.controller;
 
-import java.time.LocalDateTime;
+import com.example.smartlab.support.AppTime;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
@@ -34,7 +34,7 @@ public class GlobalExceptionHandler {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("code", status.value());
         body.put("message", message);
-        body.put("timestamp", LocalDateTime.now());
+        body.put("timestamp", AppTime.now());
         return ResponseEntity.status(status).body(body);
     }
 }

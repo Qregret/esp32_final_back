@@ -5,8 +5,8 @@ import com.example.smartlab.service.IotAuthEventService;
 import com.example.smartlab.service.IotEnvironmentReadingService;
 import com.example.smartlab.service.IotSeatService;
 import com.example.smartlab.service.IotSystemLogService;
+import com.example.smartlab.support.AppTime;
 import com.example.smartlab.vo.DashboardOverviewVO;
-import java.time.LocalDateTime;
 import java.util.List;
 import org.springframework.stereotype.Service;
 
@@ -36,7 +36,7 @@ public class DashboardServiceImpl implements DashboardService {
         List<com.example.smartlab.entity.IotSystemLog> logs = iotSystemLogService.listLatest(20);
 
         DashboardOverviewVO overview = new DashboardOverviewVO();
-        overview.setServerTime(LocalDateTime.now());
+        overview.setServerTime(AppTime.now());
         overview.setAuth(auth);
         overview.setCurrentAuth(auth);
         overview.setSeats(seats);

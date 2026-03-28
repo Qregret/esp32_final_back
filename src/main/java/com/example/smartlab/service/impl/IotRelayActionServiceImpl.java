@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.smartlab.entity.IotRelayAction;
 import com.example.smartlab.mapper.IotRelayActionMapper;
 import com.example.smartlab.service.IotRelayActionService;
-import java.time.LocalDateTime;
+import com.example.smartlab.support.AppTime;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -25,8 +25,8 @@ public class IotRelayActionServiceImpl extends ServiceImpl<IotRelayActionMapper,
         action.setOperatorName(null);
         action.setActionResult(resolveActionResult(actionResult));
         action.setActionMessage(remark);
-        action.setExecutedAt(LocalDateTime.now());
-        action.setCreatedAt(LocalDateTime.now());
+        action.setExecutedAt(AppTime.now());
+        action.setCreatedAt(AppTime.now());
         save(action);
         return action;
     }

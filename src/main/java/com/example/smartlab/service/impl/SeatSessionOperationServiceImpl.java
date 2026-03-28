@@ -68,9 +68,13 @@ public class SeatSessionOperationServiceImpl implements SeatSessionOperationServ
         }
         iotSeatService.updateById(seat);
 
+        // 修改点：将 "Seat session started" 改为动态名称，例如 "Seat01 session started"
+        String logMessage = String.format("%s session started", seat.getSeatName());
+
         iotSystemLogService.recordLog(seat.getRelayDeviceId(), seat.getId(), request.getUserId(),
-                "SESSION", "info", "Seat session started",
+                "SESSION", "info", logMessage,
                 "{\"source\":\"" + session.getSessionSource() + "\"}");
+
         streamService.publish(new StreamEventVO("seat-session-started", session, now));
         return session;
     }
@@ -105,15 +109,22 @@ public class SeatSessionOperationServiceImpl implements SeatSessionOperationServ
                 .set(IotSeat::getCurrentUserId, null)
                 .set(IotSeat::getCurrentSessionStartedAt, null)
                 .set(IotSeat::getSeatStatus, "idle"));
+
+        // 修改状态同步，确保后文逻辑正确
         seat.setCurrentUserId(null);
         seat.setCurrentSessionStartedAt(null);
         seat.setSeatStatus("idle");
 
+        // 修改点：将 "Seat session finished" 改为动态名称，例如 "Seat01 session finished"
+        String logMessage = String.format("%s session finished", seat.getSeatName());
+
         String source = request == null ? "manual" : defaultText(request.getActionSource(), "manual");
         String remark = request == null ? "" : defaultText(request.getRemark(), "");
+
         iotSystemLogService.recordLog(seat.getRelayDeviceId(), seat.getId(), session.getUserId(),
-                "SESSION", "info", "Seat session finished",
+                "SESSION", "info", logMessage,
                 "{\"source\":\"" + source + "\",\"remark\":\"" + remark + "\"}");
+
         streamService.publish(new StreamEventVO("seat-session-finished", session, now));
         return session;
     }

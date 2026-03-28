@@ -15,20 +15,14 @@ public class WebCorsConfig implements WebMvcConfigurer {
         this.corsProperties = corsProperties;
     }
 
-//    @Override
-//    public void addCorsMappings(CorsRegistry registry) {
-//        registry.addMapping("/api/**")
-//                .allowedOrigins(corsProperties.getAllowedOrigins().toArray(new String[0]))
-//                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-//                .allowedHeaders("*")
-//                .allowCredentials(false)
-//                .maxAge(3600);
-//    }
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-                .allowedOrigins("https://junyuc.me", "http://localhost:5173") // 包含你的域名和本地开发地址
-                .allowedMethods("GET", "POST", "PUT", "DELETE")
-                .allowCredentials(true);
+                .allowedOrigins(corsProperties.getAllowedOrigins().toArray(new String[0]))
+                .allowedOriginPatterns(corsProperties.getAllowedOriginPatterns().toArray(new String[0]))
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                .allowedHeaders("*")
+                .allowCredentials(true)
+                .maxAge(3600);
     }
 }

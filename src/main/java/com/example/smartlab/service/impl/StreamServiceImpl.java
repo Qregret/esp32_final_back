@@ -1,6 +1,7 @@
 package com.example.smartlab.service.impl;
 
 import com.example.smartlab.service.StreamService;
+import com.example.smartlab.service.WebSocketStreamService;
 import com.example.smartlab.vo.StreamEventVO;
 import java.io.IOException;
 import java.util.List;
@@ -12,6 +13,11 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 public class StreamServiceImpl implements StreamService {
 
     private final List<SseEmitter> emitters = new CopyOnWriteArrayList<>();
+    private final WebSocketStreamService webSocketStreamService;
+
+    public StreamServiceImpl(WebSocketStreamService webSocketStreamService) {
+        this.webSocketStreamService = webSocketStreamService;
+    }
 
     @Override
     public SseEmitter subscribe() {
@@ -25,6 +31,7 @@ public class StreamServiceImpl implements StreamService {
 
     @Override
     public void publish(StreamEventVO event) {
+        webSocketStreamService.broadcast(event);
         for (SseEmitter emitter : emitters) {
             try {
                 emitter.send(SseEmitter.event().name(event.getEventType()).data(event));

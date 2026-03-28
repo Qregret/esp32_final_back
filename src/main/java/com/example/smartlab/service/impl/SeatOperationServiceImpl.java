@@ -16,6 +16,7 @@ import com.example.smartlab.service.IotUserService;
 import com.example.smartlab.service.MqttDeviceCommandService;
 import com.example.smartlab.service.SeatOperationService;
 import com.example.smartlab.service.SeatSessionOperationService;
+import com.example.smartlab.support.AppTime;
 import com.example.smartlab.service.StreamService;
 import com.example.smartlab.vo.StreamEventVO;
 import java.math.BigDecimal;
@@ -72,9 +73,7 @@ public class SeatOperationServiceImpl implements SeatOperationService {
             currentUser = resolveTemporaryUser();
         }
 
-        LocalDateTime startedAt = seat.getCurrentSessionStartedAt() == null
-                ? LocalDateTime.now()
-                : seat.getCurrentSessionStartedAt();
+        LocalDateTime startedAt = AppTime.now();
 
         seat.setPowerStatus("on");
         seat.setSeatStatus("occupied");
@@ -97,7 +96,7 @@ public class SeatOperationServiceImpl implements SeatOperationService {
                 "{\"action\":\"power_on\",\"source\":\"" + source + "\",\"userName\":\"" + currentUser.getFullName()
                         + "\",\"startedAt\":\"" + startedAt + "\"}");
 
-        streamService.publish(new StreamEventVO("seat-powered-on", seat, LocalDateTime.now()));
+        streamService.publish(new StreamEventVO("seat-powered-on", seat, AppTime.now()));
         mqttDeviceCommandService.publishSeatPowerCommand(seat, true, source, remark);
         return seat;
     }
@@ -146,7 +145,7 @@ public class SeatOperationServiceImpl implements SeatOperationService {
                 "{\"action\":\"power_off\",\"source\":\"" + source + "\",\"userName\":\"" + resolveUserName(currentUser)
                         + "\",\"chargeAmount\":\"" + formatAmount(chargeAmount) + "\"}");
 
-        streamService.publish(new StreamEventVO("seat-powered-off", seat, LocalDateTime.now()));
+        streamService.publish(new StreamEventVO("seat-powered-off", seat, AppTime.now()));
         mqttDeviceCommandService.publishSeatPowerCommand(seat, false, source, remark);
         return seat;
     }
@@ -178,9 +177,9 @@ public class SeatOperationServiceImpl implements SeatOperationService {
                 if (currentUser == null) {
                     currentUser = resolveTemporaryUser();
                 }
-                LocalDateTime startedAt = seat.getCurrentSessionStartedAt() == null
-                        ? LocalDateTime.now()
-                        : seat.getCurrentSessionStartedAt();
+                LocalDateTime startedAt = changed ? AppTime.now() : (seat.getCurrentSessionStartedAt() == null
+                        ? AppTime.now()
+                        : seat.getCurrentSessionStartedAt());
                 seat.setPowerStatus("on");
                 seat.setSeatStatus("occupied");
                 seat.setCurrentUserId(currentUser.getId());
@@ -233,7 +232,7 @@ public class SeatOperationServiceImpl implements SeatOperationService {
                     "{\"source\":\"" + source + "\",\"deviceCode\":\"" + deviceCode
                             + "\",\"occupied\":" + occupied + ",\"chargeAmount\":\"" + formatAmount(chargeAmount) + "\"}");
 
-            streamService.publish(new StreamEventVO(occupied ? "seat-powered-on" : "seat-powered-off", seat, LocalDateTime.now()));
+            streamService.publish(new StreamEventVO(occupied ? "seat-powered-on" : "seat-powered-off", seat, AppTime.now()));
         }
 
         return updatedSeats;
@@ -339,6 +338,13 @@ public class SeatOperationServiceImpl implements SeatOperationService {
     private IotSeatSession ensureActiveSession(IotSeat seat, Long userId, String source, LocalDateTime startedAt) {
         IotSeatSession activeSession = iotSeatSessionService.getActiveSessionBySeatId(seat.getId());
         if (activeSession != null) {
+            activeSession.setUserId(userId);
+            activeSession.setSessionSource(normalizeSessionSource(source));
+            activeSession.setStartedAt(startedAt == null ? AppTime.now() : startedAt);
+            activeSession.setDurationSeconds(0);
+            activeSession.setBillingHours(0);
+            activeSession.setChargeAmount(BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP));
+            iotSeatSessionService.updateById(activeSession);
             return activeSession;
         }
 
@@ -346,7 +352,7 @@ public class SeatOperationServiceImpl implements SeatOperationService {
         session.setSeatId(seat.getId());
         session.setUserId(userId);
         session.setSessionSource(normalizeSessionSource(source));
-        session.setStartedAt(startedAt == null ? LocalDateTime.now() : startedAt);
+        session.setStartedAt(startedAt == null ? AppTime.now() : startedAt);
         session.setDurationSeconds(0);
         session.setBillingHours(0);
         session.setHourlyRate(defaultRate(seat.getHourlyRate()));
@@ -360,7 +366,7 @@ public class SeatOperationServiceImpl implements SeatOperationService {
         if (startedAt == null) {
             return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
         }
-        int durationSeconds = Math.max((int) Duration.between(startedAt, LocalDateTime.now()).getSeconds(), 0);
+        int durationSeconds = Math.max((int) Duration.between(startedAt, AppTime.now()).getSeconds(), 0);
         int billingHours = Math.max(1, (int) Math.ceil(durationSeconds / 3600.0));
         return defaultRate(hourlyRate).multiply(BigDecimal.valueOf(billingHours)).setScale(2, RoundingMode.HALF_UP);
     }

@@ -1,0 +1,41 @@
+spring:
+  datasource:
+    url: jdbc:mysql://${MYSQLHOST:localhost}:${MYSQLPORT:3306}/${MYSQLDATABASE:esp32}?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
+    username: ${MYSQLUSER:root}
+    password: ${MYSQLPASSWORD:root}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+app:
+  cors:
+    allowed-origins:
+      - http://localhost:3000
+      - http://localhost:5173
+      - http://localhost:5174
+      - https://junyuc.me
+    allowed-origin-patterns:
+      - http://localhost:*
+      - https://*.junyuc.me
+      - https://*.vercel.app
+  mqtt:
+    enabled: true
+    broker-url: tcp://ballast.proxy.rlwy.net:57522
+    client-id: smartlab-backend
+    username: esp32admin
+    password: Smartlab_mqtt_2026!
+    clean-session: true
+    automatic-reconnect: true
+    connection-timeout-seconds: 10
+    keep-alive-seconds: 20
+    qos: 1
+    reconnect-delay-ms: 15000
+    environment-topic: smartlab/environment/readings
+    seat-topic: smartlab/seats/state
+    seat-command-topic-prefix: smartlab/seats/commands
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+server:
+  port: 8080

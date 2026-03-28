@@ -5,9 +5,11 @@ import com.example.smartlab.dto.FinishSeatSessionRequest;
 import com.example.smartlab.dto.StartSeatSessionRequest;
 import com.example.smartlab.entity.IotSeat;
 import com.example.smartlab.entity.IotSeatSession;
+import com.example.smartlab.entity.IotUser;
 import com.example.smartlab.service.IotSeatService;
 import com.example.smartlab.service.IotSeatSessionService;
 import com.example.smartlab.service.IotSystemLogService;
+import com.example.smartlab.service.IotUserService;
 import com.example.smartlab.service.SeatSessionOperationService;
 import com.example.smartlab.service.StreamService;
 import com.example.smartlab.vo.StreamEventVO;
@@ -15,6 +17,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.Locale;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,15 +28,18 @@ public class SeatSessionOperationServiceImpl implements SeatSessionOperationServ
     private final IotSeatSessionService iotSeatSessionService;
     private final IotSystemLogService iotSystemLogService;
     private final StreamService streamService;
+    private final IotUserService iotUserService;
 
     public SeatSessionOperationServiceImpl(IotSeatService iotSeatService,
                                            IotSeatSessionService iotSeatSessionService,
                                            IotSystemLogService iotSystemLogService,
-                                           StreamService streamService) {
+                                           StreamService streamService,
+                                           IotUserService iotUserService) {
         this.iotSeatService = iotSeatService;
         this.iotSeatSessionService = iotSeatSessionService;
         this.iotSystemLogService = iotSystemLogService;
         this.streamService = streamService;
+        this.iotUserService = iotUserService;
     }
 
     @Override
@@ -51,7 +57,7 @@ public class SeatSessionOperationServiceImpl implements SeatSessionOperationServ
         IotSeatSession session = new IotSeatSession();
         session.setSeatId(seat.getId());
         session.setUserId(request.getUserId());
-        session.setSessionSource(defaultText(request.getSessionSource(), "manual"));
+        session.setSessionSource(normalizeSessionSource(request.getSessionSource()));
         session.setStartedAt(now);
         session.setDurationSeconds(0);
         session.setBillingHours(1);
@@ -68,11 +74,13 @@ public class SeatSessionOperationServiceImpl implements SeatSessionOperationServ
         }
         iotSeatService.updateById(seat);
 
-        // 修改点：将 "Seat session started" 改为动态名称，例如 "Seat01 session started"
-        String logMessage = String.format("%s session started", seat.getSeatName());
-
-        iotSystemLogService.recordLog(seat.getRelayDeviceId(), seat.getId(), request.getUserId(),
-                "SESSION", "info", logMessage,
+        iotSystemLogService.recordLog(
+                seat.getRelayDeviceId(),
+                seat.getId(),
+                request.getUserId(),
+                "SESSION",
+                "info",
+                resolveSeatLabel(seat) + "开始使用，使用者：" + resolveUserName(request.getUserId()),
                 "{\"source\":\"" + session.getSessionSource() + "\"}");
 
         streamService.publish(new StreamEventVO("seat-session-started", session, now));
@@ -110,20 +118,25 @@ public class SeatSessionOperationServiceImpl implements SeatSessionOperationServ
                 .set(IotSeat::getCurrentSessionStartedAt, null)
                 .set(IotSeat::getSeatStatus, "idle"));
 
-        // 修改状态同步，确保后文逻辑正确
         seat.setCurrentUserId(null);
         seat.setCurrentSessionStartedAt(null);
         seat.setSeatStatus("idle");
 
-        // 修改点：将 "Seat session finished" 改为动态名称，例如 "Seat01 session finished"
-        String logMessage = String.format("%s session finished", seat.getSeatName());
-
         String source = request == null ? "manual" : defaultText(request.getActionSource(), "manual");
         String remark = request == null ? "" : defaultText(request.getRemark(), "");
 
-        iotSystemLogService.recordLog(seat.getRelayDeviceId(), seat.getId(), session.getUserId(),
-                "SESSION", "info", logMessage,
-                "{\"source\":\"" + source + "\",\"remark\":\"" + remark + "\"}");
+        iotSystemLogService.recordLog(
+                seat.getRelayDeviceId(),
+                seat.getId(),
+                session.getUserId(),
+                "SESSION",
+                "info",
+                resolveSeatLabel(seat) + "结束使用，使用者：" + resolveUserName(session.getUserId())
+                        + "，使用时长：" + formatDuration(durationSeconds)
+                        + "，消费金额：" + chargeAmount.toPlainString() + "元",
+                "{\"source\":\"" + source + "\",\"remark\":\"" + remark
+                        + "\",\"durationSeconds\":" + durationSeconds
+                        + ",\"chargeAmount\":\"" + chargeAmount.toPlainString() + "\"}");
 
         streamService.publish(new StreamEventVO("seat-session-finished", session, now));
         return session;
@@ -143,5 +156,45 @@ public class SeatSessionOperationServiceImpl implements SeatSessionOperationServ
 
     private String defaultText(String text, String fallback) {
         return text == null || text.isBlank() ? fallback : text;
+    }
+
+    private String normalizeSessionSource(String source) {
+        String value = defaultText(source, "manual").trim().toLowerCase(Locale.ROOT);
+        if (value.contains("rfid") || value.contains("auth")) {
+            return "rfid_auth";
+        }
+        if (value.contains("restore") || value.contains("system")) {
+            return "system_restore";
+        }
+        return "manual";
+    }
+
+    private String resolveSeatLabel(IotSeat seat) {
+        if (seat.getSeatCode() != null && !seat.getSeatCode().isBlank()) {
+            return seat.getSeatCode();
+        }
+        if (seat.getSeatName() != null && !seat.getSeatName().isBlank()) {
+            return seat.getSeatName();
+        }
+        return "Seat-" + seat.getId();
+    }
+
+    private String resolveUserName(Long userId) {
+        if (userId == null) {
+            return "无人";
+        }
+        IotUser user = iotUserService.getById(userId);
+        if (user == null || user.getFullName() == null || user.getFullName().isBlank()) {
+            return "无人";
+        }
+        return user.getFullName();
+    }
+
+    private String formatDuration(int durationSeconds) {
+        int seconds = Math.max(durationSeconds, 0);
+        int hours = seconds / 3600;
+        int minutes = (seconds % 3600) / 60;
+        int remain = seconds % 60;
+        return String.format("%02d:%02d:%02d", hours, minutes, remain);
     }
 }

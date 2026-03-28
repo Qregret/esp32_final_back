@@ -345,7 +345,7 @@ public class SeatOperationServiceImpl implements SeatOperationService {
         IotSeatSession session = new IotSeatSession();
         session.setSeatId(seat.getId());
         session.setUserId(userId);
-        session.setSessionSource(defaultText(source, "manual_control"));
+        session.setSessionSource(normalizeSessionSource(source));
         session.setStartedAt(startedAt == null ? LocalDateTime.now() : startedAt);
         session.setDurationSeconds(0);
         session.setBillingHours(0);
@@ -367,6 +367,17 @@ public class SeatOperationServiceImpl implements SeatOperationService {
 
     private BigDecimal defaultRate(BigDecimal rate) {
         return rate == null ? BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP) : rate.setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private String normalizeSessionSource(String source) {
+        String value = defaultText(source, "manual").trim().toLowerCase(Locale.ROOT);
+        if (value.contains("rfid") || value.contains("auth")) {
+            return "rfid_auth";
+        }
+        if (value.contains("restore") || value.contains("system")) {
+            return "system_restore";
+        }
+        return "manual";
     }
 
     private String resolveUserName(IotUser user) {

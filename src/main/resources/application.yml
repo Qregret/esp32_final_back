@@ -1,11 +1,8 @@
 spring:
   datasource:
-    # 替换为你图片中的 Railway 公共网络 Host、端口和数据库名 (railway)
-    url: jdbc:mysql://caboose.proxy.rlwy.net:11100/railway?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
-    # 替换为 Railway 提供的用户名
+    url: jdbc:mysql://localhost:3306/esp32?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
     username: root
-    # 替换为你命令里的真实密码
-    password: NAgBuOGRzIuDXKSyjIjmRPDQujwIfHaZ
+    password: root
     driver-class-name: com.mysql.cj.jdbc.Driver
 
 app:
@@ -13,9 +10,26 @@ app:
     allowed-origins:
       - http://localhost:3000
       - http://localhost:5173
+      - http://localhost:5174
       - https://junyuc.me
-      - https://www.junyuc.me
-      - https://esp32-final-2zz8qglef-qregrets-projects.vercel.app # 把现在的预览地址加上
+    allowed-origin-patterns:
+      - http://localhost:*
+      - https://*.junyuc.me
+      - https://*.vercel.app
+  mqtt:
+    enabled: false
+    broker-url: tcp://localhost:1883
+    client-id: smartlab-backend
+    username:
+    password:
+    clean-session: true
+    automatic-reconnect: true
+    connection-timeout-seconds: 10
+    keep-alive-seconds: 20
+    qos: 1
+    reconnect-delay-ms: 15000
+    environment-topic: smartlab/environment/readings
+    seat-topic: smartlab/seats/state
 
 mybatis-plus:
   configuration:
@@ -23,6 +37,4 @@ mybatis-plus:
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
 
 server:
-  # 关键修改：云平台通常通过环境变量 PORT 来动态分配端口。
-  # 这里的语法是：优先使用系统的 PORT 变量，如果没有（比如你在本地运行），就默认用 8080。
-  port: ${PORT:8080}
+  port: 8080

@@ -15,30 +15,14 @@ public class WebCorsConfig implements WebMvcConfigurer {
         this.corsProperties = corsProperties;
     }
 
-//    @Override
-//    public void addCorsMappings(CorsRegistry registry) {
-//        registry.addMapping("/api/**")
-//                .allowedOrigins(corsProperties.getAllowedOrigins().toArray(new String[0]))
-//                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-//                .allowedHeaders("*")
-//                .allowCredentials(false)
-//                .maxAge(3600);
-//    }
-
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-                // 使用 allowedOriginPatterns 可以完美支持带 www 和不带 www 的域名
-                .allowedOriginPatterns(
-                    "https://junyuc.me", 
-                    "https://www.junyuc.me", 
-                    "https://*.vercel.app", // 顺便放行所有 Vercel 预览链接
-                    "http://localhost:*"    // 放行本地所有端口
-                )
-                // 必须包含 OPTIONS，否则预检请求会失败
+                .allowedOrigins(corsProperties.getAllowedOrigins().toArray(new String[0]))
+                .allowedOriginPatterns(corsProperties.getAllowedOriginPatterns().toArray(new String[0]))
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
-                .allowCredentials(true) // 允许携带凭证
+                .allowCredentials(true)
                 .maxAge(3600);
     }
 }

@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: jdbc:mysql://localhost:3306/esp32?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
-    username: root
-    password: root
+    url: jdbc:mysql://${MYSQLHOST:localhost}:${MYSQLPORT:3306}/${MYSQLDATABASE:esp32}?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
+    username: ${MYSQLUSER:root}
+    password: ${MYSQLPASSWORD:root}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
 app:
@@ -17,11 +17,11 @@ app:
       - https://*.junyuc.me
       - https://*.vercel.app
   mqtt:
-    enabled: false
-    broker-url: tcp://localhost:1883
+    enabled: true
+    broker-url: tcp://ballast.proxy.rlwy.net:57522
     client-id: smartlab-backend
-    username:
-    password:
+    username: esp32admin
+    password: Smartlab_mqtt_2026!
     clean-session: true
     automatic-reconnect: true
     connection-timeout-seconds: 10

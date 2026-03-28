@@ -51,7 +51,7 @@ public class EnvironmentOperationServiceImpl implements EnvironmentOperationServ
 
         String source = request.getSource() == null || request.getSource().isBlank() ? "device_report" : request.getSource();
         iotSystemLogService.recordLog(request.getSensorDeviceId(), null, null, "MQTT", "info",
-                "Environment reading received",
+                "环境数据已接收",
                 "{\"source\":\"" + source + "\",\"temperatureC\":" + request.getTemperatureC()
                         + ",\"humidityPercent\":" + request.getHumidityPercent() + "}");
         streamService.publish(new StreamEventVO("environment-updated", reading, LocalDateTime.now()));

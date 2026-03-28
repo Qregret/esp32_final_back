@@ -6,10 +6,12 @@ import com.example.smartlab.dto.SeatStateSyncItem;
 import com.example.smartlab.dto.SeatStateSyncRequest;
 import com.example.smartlab.entity.IotSeat;
 import com.example.smartlab.entity.IotSeatSession;
+import com.example.smartlab.entity.IotUser;
 import com.example.smartlab.service.IotRelayActionService;
 import com.example.smartlab.service.IotSeatService;
 import com.example.smartlab.service.IotSeatSessionService;
 import com.example.smartlab.service.IotSystemLogService;
+import com.example.smartlab.service.IotUserService;
 import com.example.smartlab.service.MqttDeviceCommandService;
 import com.example.smartlab.service.SeatOperationService;
 import com.example.smartlab.service.SeatSessionOperationService;
@@ -26,6 +28,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class SeatOperationServiceImpl implements SeatOperationService {
 
+    private static final String TEMP_USER_CODE = "V0001";
+    private static final String TEMP_USER_NAME = "临时使用者";
+
     private final IotSeatService iotSeatService;
     private final IotSeatSessionService iotSeatSessionService;
     private final SeatSessionOperationService seatSessionOperationService;
@@ -33,6 +38,7 @@ public class SeatOperationServiceImpl implements SeatOperationService {
     private final IotSystemLogService iotSystemLogService;
     private final StreamService streamService;
     private final MqttDeviceCommandService mqttDeviceCommandService;
+    private final IotUserService iotUserService;
 
     public SeatOperationServiceImpl(IotSeatService iotSeatService,
                                     IotSeatSessionService iotSeatSessionService,
@@ -40,7 +46,8 @@ public class SeatOperationServiceImpl implements SeatOperationService {
                                     IotRelayActionService iotRelayActionService,
                                     IotSystemLogService iotSystemLogService,
                                     StreamService streamService,
-                                    MqttDeviceCommandService mqttDeviceCommandService) {
+                                    MqttDeviceCommandService mqttDeviceCommandService,
+                                    IotUserService iotUserService) {
         this.iotSeatService = iotSeatService;
         this.iotSeatSessionService = iotSeatSessionService;
         this.seatSessionOperationService = seatSessionOperationService;
@@ -48,6 +55,7 @@ public class SeatOperationServiceImpl implements SeatOperationService {
         this.iotSystemLogService = iotSystemLogService;
         this.streamService = streamService;
         this.mqttDeviceCommandService = mqttDeviceCommandService;
+        this.iotUserService = iotUserService;
     }
 
     @Override
@@ -55,8 +63,12 @@ public class SeatOperationServiceImpl implements SeatOperationService {
     public IotSeat powerOn(Long seatId, SeatPowerRequest request) {
         IotSeat seat = requireSeat(seatId);
         seat.setPowerStatus("on");
-        if (seat.getCurrentUserId() != null) {
-            seat.setSeatStatus("occupied");
+        seat.setSeatStatus("occupied");
+        if (seat.getCurrentUserId() == null) {
+            seat.setCurrentUserId(resolveTemporaryUser().getId());
+        }
+        if (seat.getCurrentSessionStartedAt() == null) {
+            seat.setCurrentSessionStartedAt(LocalDateTime.now());
         }
         iotSeatService.updateById(seat);
 
@@ -89,9 +101,9 @@ public class SeatOperationServiceImpl implements SeatOperationService {
         }
 
         seat.setPowerStatus("off");
-        if (seat.getCurrentUserId() == null) {
-            seat.setSeatStatus("idle");
-        }
+        seat.setSeatStatus("idle");
+        seat.setCurrentUserId(null);
+        seat.setCurrentSessionStartedAt(null);
         iotSeatService.updateById(seat);
 
         String source = request == null ? "manual_control" : defaultText(request.getSource(), "manual_control");
@@ -131,6 +143,17 @@ public class SeatOperationServiceImpl implements SeatOperationService {
 
             seat.setPowerStatus(targetPowerStatus);
             seat.setSeatStatus(targetSeatStatus);
+            if (occupied) {
+                if (seat.getCurrentUserId() == null) {
+                    seat.setCurrentUserId(resolveTemporaryUser().getId());
+                }
+                if (seat.getCurrentSessionStartedAt() == null) {
+                    seat.setCurrentSessionStartedAt(LocalDateTime.now());
+                }
+            } else {
+                seat.setCurrentUserId(null);
+                seat.setCurrentSessionStartedAt(null);
+            }
             iotSeatService.updateById(seat);
             updatedSeats.add(seat);
 
@@ -219,5 +242,22 @@ public class SeatOperationServiceImpl implements SeatOperationService {
             return seat.getSeatName();
         }
         return "seat-" + seat.getId();
+    }
+
+    private IotUser resolveTemporaryUser() {
+        IotUser tempUser = iotUserService.getOne(new LambdaQueryWrapper<IotUser>()
+                .eq(IotUser::getUserCode, TEMP_USER_CODE)
+                .last("LIMIT 1"), false);
+        if (tempUser != null) {
+            return tempUser;
+        }
+
+        tempUser = new IotUser();
+        tempUser.setUserCode(TEMP_USER_CODE);
+        tempUser.setFullName(TEMP_USER_NAME);
+        tempUser.setIdentityStatus("visitor");
+        tempUser.setRemark("system-generated temporary user");
+        iotUserService.save(tempUser);
+        return tempUser;
     }
 }

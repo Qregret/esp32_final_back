@@ -18,9 +18,18 @@ public interface IotSeatMapper extends BaseMapper<IotSeat> {
                 s.relay_channel AS relayChannel,
                 s.hourly_rate AS hourlyRate,
                 s.current_session_started_at AS currentSessionStartedAt,
-                u.id AS currentUserId,
-                u.user_code AS currentUserCode,
-                u.full_name AS currentUserName,
+                CASE
+                    WHEN s.current_user_id IS NULL AND s.power_status = 'on' THEN 0
+                    ELSE u.id
+                END AS currentUserId,
+                CASE
+                    WHEN s.current_user_id IS NULL AND s.power_status = 'on' THEN 'V0001'
+                    ELSE u.user_code
+                END AS currentUserCode,
+                CASE
+                    WHEN s.current_user_id IS NULL AND s.power_status = 'on' THEN '临时使用者'
+                    ELSE u.full_name
+                END AS currentUserName,
                 u.phone_no AS currentUserPhone,
                 d.id AS relayDeviceId,
                 d.device_code AS relayDeviceCode,

@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 public class MqttProperties {
 
     private boolean enabled;
-    private String brokerUrl = "tcp://localhost:1883";
+    private String brokerUrl = "tcp://8.155.145.187:1883";
     private String clientId = "smartlab-backend";
     private String username;
     private String password;

@@ -218,9 +218,8 @@ public class SeatOperationServiceImpl implements SeatOperationService {
                     action, source, "success", remark);
 
             String message = occupied
-                    ? resolveSeatLabel(seat) + "\u540c\u6b65\u5f00\u542f\uff0c\u4f7f\u7528\u8005\uff1a" + resolveUserName(currentUser)
-                    : resolveSeatLabel(seat) + "\u540c\u6b65\u5173\u95ed\uff0c\u4f7f\u7528\u8005\uff1a" + resolveUserName(currentUser)
-                        + "\uff0c\u6d88\u8d39\u91d1\u989d\uff1a" + formatAmount(chargeAmount) + "\u5143";
+                    ? resolveSeatLabel(seat) + "\u540c\u6b65\u5f00\u542f"
+                    : resolveSeatLabel(seat) + "\u540c\u6b65\u5173\u95ed";
 
             iotSystemLogService.recordLog(
                     seat.getRelayDeviceId(),
@@ -367,6 +366,9 @@ public class SeatOperationServiceImpl implements SeatOperationService {
             return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
         }
         int durationSeconds = Math.max((int) Duration.between(startedAt, AppTime.now()).getSeconds(), 0);
+        if (durationSeconds < 60) {
+            return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        }
         int billingHours = Math.max(1, (int) Math.ceil(durationSeconds / 3600.0));
         return defaultRate(hourlyRate).multiply(BigDecimal.valueOf(billingHours)).setScale(2, RoundingMode.HALF_UP);
     }

@@ -61,9 +61,9 @@ public class SeatSessionOperationServiceImpl implements SeatSessionOperationServ
         session.setSessionSource(normalizeSessionSource(request.getSessionSource()));
         session.setStartedAt(now);
         session.setDurationSeconds(0);
-        session.setBillingHours(1);
+        session.setBillingHours(0);
         session.setHourlyRate(defaultRate(seat.getHourlyRate()));
-        session.setChargeAmount(defaultRate(seat.getHourlyRate()));
+        session.setChargeAmount(BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP));
         session.setSessionStatus("active");
         iotSeatSessionService.save(session);
 
@@ -101,9 +101,11 @@ public class SeatSessionOperationServiceImpl implements SeatSessionOperationServ
 
         LocalDateTime now = AppTime.now();
         int durationSeconds = Math.max((int) Duration.between(session.getStartedAt(), now).getSeconds(), 0);
-        int billingHours = Math.max(1, (int) Math.ceil(durationSeconds / 3600.0));
+        int billingHours = durationSeconds < 60 ? 0 : Math.max(1, (int) Math.ceil(durationSeconds / 3600.0));
         BigDecimal hourlyRate = defaultRate(session.getHourlyRate());
-        BigDecimal chargeAmount = hourlyRate.multiply(BigDecimal.valueOf(billingHours)).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal chargeAmount = billingHours == 0
+                ? BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP)
+                : hourlyRate.multiply(BigDecimal.valueOf(billingHours)).setScale(2, RoundingMode.HALF_UP);
 
         session.setEndedAt(now);
         session.setDurationSeconds(durationSeconds);
